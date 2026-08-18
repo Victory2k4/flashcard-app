@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: flashcard-backend
+    env: node
+    region: singapore  # Chọn region gần Việt Nam nhất
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true   # Render tự tạo giá trị ngẫu nhiên
+      - key: DATABASE_URL
+        sync: false           # Bạn điền thủ công trong dashboard
+      - key: FRONTEND_URL
+        sync: false           # Bạn điền thủ công sau khi có URL Vercel
