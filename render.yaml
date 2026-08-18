@@ -12,6 +12,6 @@ services:
       - key: JWT_SECRET
         generateValue: true   # Render tự tạo giá trị ngẫu nhiên
       - key: DATABASE_URL
-        sync: false           # Bạn điền thủ công trong dashboard
+        value: "postgresql://neondb_owner:npg_Vgr0yxALtFu8@ep-red-fog-ayvzrzft.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require"
       - key: FRONTEND_URL
-        sync: false           # Bạn điền thủ công sau khi có URL Vercel
+        sync: false           # Điền sau khi có Vercel URL
