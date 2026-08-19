@@ -47,14 +47,19 @@ const { setupDatabase } = require('./db/setup');
 async function start() {
   try {
     await setupDatabase();
-    app.listen(PORT, () => {
-      console.log(`🚀 Flashcard API running at http://localhost:${PORT}`);
-    });
+    if (process.env.VERCEL !== '1') {
+      app.listen(PORT, () => {
+        console.log(`🚀 Flashcard API running at http://localhost:${PORT}`);
+      });
+    }
   } catch (err) {
     console.error('❌ Failed to start server:', err.message);
-    process.exit(1);
+    if (process.env.VERCEL !== '1') process.exit(1);
   }
 }
 
 start();
+
+// Export the Express API for Vercel
+module.exports = app;
 
