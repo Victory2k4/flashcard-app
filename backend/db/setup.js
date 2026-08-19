@@ -8,7 +8,14 @@ const pool = new Pool({
 });
 
 // Helper: chạy query dễ dàng hơn
-const query = (text, params) => pool.query(text, params);
+let dbReady = false;
+const query = async (text, params) => {
+  if (!dbReady) {
+    await setupDatabase();
+    dbReady = true;
+  }
+  return pool.query(text, params);
+};
 
 // Khởi tạo schema khi server start
 async function setupDatabase() {
