@@ -8,6 +8,8 @@ const PORT = process.env.PORT || 3001;
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:4173',
+  'https://weben-three.vercel.app',
+  'https://weben-p94wsmczu-victory2k4s-projects.vercel.app',
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
