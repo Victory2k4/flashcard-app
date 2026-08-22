@@ -7,11 +7,9 @@ const router = express.Router();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // POST /api/ai/generate-deck
-// Body: { topic, language, count }
 // Tự động tạo bộ thẻ từ vựng từ 1 chủ đề bằng Gemini AI
 router.post('/generate-deck', authMiddleware, async (req, res) => {
   const { topic, language = 'English', count = 15 } = req.body;
-
   if (!topic) return res.status(400).json({ error: 'Vui lòng nhập chủ đề' });
   if (count > 30) return res.status(400).json({ error: 'Tối đa 30 thẻ mỗi lần' });
 
@@ -20,8 +18,7 @@ router.post('/generate-deck', authMiddleware, async (req, res) => {
 
     const prompt = `
 You are a language learning assistant. Generate ${count} flashcard words for the topic "${topic}" in ${language}.
-
-Return ONLY a valid JSON array (no markdown, no explanation) like this:
+Return ONLY a valid JSON array (no markdown, no explanation):
 [
   {
     "term": "word in target language",
@@ -31,52 +28,28 @@ Return ONLY a valid JSON array (no markdown, no explanation) like this:
     "example_sentence": "example sentence using this word"
   }
 ]
-
-Rules:
-- Definitions must be in Vietnamese
-- Words must be relevant to the topic "${topic}"
-- Include common, practical vocabulary
-- phonetic uses IPA notation
+Rules: definitions in Vietnamese, words relevant to "${topic}", practical vocabulary, IPA phonetic notation.
 `.trim();
 
     const result = await model.generateContent(prompt);
     const text = result.response.text();
-
-    // Parse JSON từ response của Gemini
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (!jsonMatch) throw new Error('Gemini không trả về JSON hợp lệ');
-
     const cards = JSON.parse(jsonMatch[0]);
-    if (!Array.isArray(cards) || cards.length === 0) {
-      throw new Error('Dữ liệu không hợp lệ');
-    }
+    if (!Array.isArray(cards) || cards.length === 0) throw new Error('Dữ liệu không hợp lệ');
 
-    // Tạo deck trong database
     const deckResult = await query(
       `INSERT INTO decks (user_id, title, description, color) VALUES ($1, $2, $3, $4) RETURNING *`,
-      [
-        req.userId,
-        `${topic} (AI Generated)`,
-        `Bộ thẻ được tạo tự động bởi AI cho chủ đề: ${topic}`,
-        '#8b5cf6',
-      ]
+      [req.userId, `${topic} (AI)`, `Bộ thẻ AI tạo cho chủ đề: ${topic}`, '#8b5cf6']
     );
     const deck = deckResult.rows[0];
 
-    // Thêm tất cả cards vào database
     const insertedCards = [];
     for (const card of cards) {
       const cardResult = await query(
         `INSERT INTO cards (deck_id, term, phonetic, part_of_speech, definition, example_sentence)
          VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-        [
-          deck.id,
-          card.term || '',
-          card.phonetic || '',
-          card.part_of_speech || '',
-          card.definition || '',
-          card.example_sentence || '',
-        ]
+        [deck.id, card.term || '', card.phonetic || '', card.part_of_speech || '', card.definition || '', card.example_sentence || '']
       );
       insertedCards.push(cardResult.rows[0]);
     }
@@ -100,10 +73,8 @@ router.post('/suggest-card', authMiddleware, async (req, res) => {
 
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
     const prompt = `
 Give information for the ${language} word/phrase: "${term}"
-
 Return ONLY a valid JSON object (no markdown):
 {
   "term": "${term}",
@@ -111,18 +82,77 @@ Return ONLY a valid JSON object (no markdown):
   "part_of_speech": "noun/verb/adjective/etc",
   "definition": "Vietnamese definition",
   "example_sentence": "example sentence in ${language}"
-}
-`.trim();
+}`.trim();
 
     const result = await model.generateContent(prompt);
     const text = result.response.text();
-
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('Không thể xử lý phản hồi từ AI');
-
     res.json(JSON.parse(jsonMatch[0]));
   } catch (err) {
     console.error('AI suggest error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/ai/ask
+// Hỏi AI dựa trên dữ liệu thẻ của người dùng trong CSDL
+router.post('/ask', authMiddleware, async (req, res) => {
+  const { question, deck_id } = req.body;
+  if (!question) return res.status(400).json({ error: 'Vui lòng nhập câu hỏi' });
+
+  try {
+    // Lấy dữ liệu thẻ từ CSDL của người dùng (hoặc 1 deck cụ thể)
+    let cardsResult;
+    if (deck_id) {
+      // Hỏi về 1 bộ thẻ cụ thể - kiểm tra quyền sở hữu
+      const deckCheck = await query('SELECT * FROM decks WHERE id=$1 AND user_id=$2', [deck_id, req.userId]);
+      if (deckCheck.rows.length === 0) return res.status(403).json({ error: 'Không tìm thấy bộ thẻ' });
+      cardsResult = await query(
+        `SELECT c.term, c.phonetic, c.part_of_speech, c.definition, c.example_sentence, d.title as deck_title
+         FROM cards c JOIN decks d ON c.deck_id = d.id
+         WHERE c.deck_id = $1 LIMIT 80`,
+        [deck_id]
+      );
+    } else {
+      // Hỏi toàn bộ thẻ của user (lấy 80 thẻ gần nhất)
+      cardsResult = await query(
+        `SELECT c.term, c.phonetic, c.part_of_speech, c.definition, c.example_sentence, d.title as deck_title
+         FROM cards c JOIN decks d ON c.deck_id = d.id
+         WHERE d.user_id = $1
+         ORDER BY c.created_at DESC LIMIT 80`,
+        [req.userId]
+      );
+    }
+
+    const cards = cardsResult.rows;
+    if (cards.length === 0) {
+      return res.json({ answer: 'Bạn chưa có thẻ từ vựng nào. Hãy tạo bộ thẻ trước nhé!' });
+    }
+
+    // Chuyển cards thành context text cho Gemini
+    const context = cards
+      .map(c => `- ${c.term} (${c.part_of_speech}): ${c.definition}. Ví dụ: ${c.example_sentence} [Bộ: ${c.deck_title}]`)
+      .join('\n');
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const prompt = `
+Bạn là trợ lý học từ vựng thông minh. Người dùng đang học các từ sau:
+
+${context}
+
+Câu hỏi của người dùng: "${question}"
+
+Hãy trả lời bằng tiếng Việt, dựa vào danh sách từ trên khi phù hợp.
+Nếu câu hỏi liên quan đến các từ trong danh sách, hãy giải thích chi tiết và lấy ví dụ từ đó.
+Nếu câu hỏi không liên quan, hãy trả lời thân thiện và gợi ý cách học hiệu quả hơn.
+Câu trả lời ngắn gọn, dễ hiểu, không quá 300 từ.
+`.trim();
+
+    const result = await model.generateContent(prompt);
+    res.json({ answer: result.response.text(), cards_used: cards.length });
+  } catch (err) {
+    console.error('AI ask error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
