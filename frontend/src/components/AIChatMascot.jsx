@@ -59,10 +59,7 @@ export default function AIChatMascot() {
             {/* Header */}
             <div className="bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center">
               <div className="flex items-center gap-3">
-                {/* Avatar trong header - nền trắng, bo tròn nhẹ */}
-                <div className="w-10 h-10 bg-white rounded-xl overflow-hidden flex-shrink-0 shadow">
-                  <img src="/panda-mascot.png" alt="Panda" className="w-full h-full object-contain" />
-                </div>
+                <div className="text-3xl bg-slate-700 p-1 rounded-full w-10 h-10 flex items-center justify-center">🐼</div>
                 <div>
                   <h3 className="text-white font-bold text-sm">Gấu Trúc Trợ Lý</h3>
                   <p className="text-green-400 text-xs flex items-center gap-1">
@@ -143,16 +140,10 @@ export default function AIChatMascot() {
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
       >
-        {/* Avatar nút - nền trắng, bo tròn nhẹ để ảnh hiển thị đẹp */}
-        <div className={`w-16 h-16 shadow-2xl transition-all duration-300 flex items-center justify-center overflow-hidden ${
-          isOpen
-            ? 'bg-slate-700 rounded-full border-2 border-slate-500'
-            : 'bg-white rounded-2xl border-2 border-blue-400/60'
+        <div className={`w-16 h-16 rounded-full shadow-2xl flex items-center justify-center text-4xl transition-all duration-300 border-2 ${
+          isOpen ? 'bg-slate-700 border-slate-600' : 'bg-gradient-to-tr from-blue-500 to-purple-500 border-blue-400'
         }`}>
-          {isOpen
-            ? <span className="text-2xl font-light text-white">✕</span>
-            : <img src="/panda-mascot.png" alt="Mascot" className="w-full h-full object-contain" />
-          }
+          {isOpen ? '✕' : '🐼'}
         </div>
 
         {/* Chấm xanh online */}
