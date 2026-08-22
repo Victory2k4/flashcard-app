@@ -17,7 +17,9 @@ api.interceptors.request.use(config => {
 api.interceptors.response.use(
   r => r,
   err => {
-    if (err.response?.status === 401) {
+    // Không tự động đá ra ngoài nếu lỗi 401 đến từ trang đăng nhập / đăng ký
+    const isAuthRoute = err.config.url.includes('/auth/login') || err.config.url.includes('/auth/register');
+    if (err.response?.status === 401 && !isAuthRoute) {
       localStorage.removeItem('token')
       window.location.href = '/login'
     }
