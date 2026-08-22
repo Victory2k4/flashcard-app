@@ -7,6 +7,7 @@ import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import DeckDetail from './pages/DeckDetail'
 import Study from './pages/Study'
+import AIChatMascot from './components/AIChatMascot'
 
 function PrivateRoute({ children }) {
   const token = useStore(s => s.token)
@@ -36,6 +37,7 @@ export default function App() {
         <Route path="/study/:id" element={<PrivateRoute><Study /></PrivateRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <AIChatMascot />
     </>
   )
 }

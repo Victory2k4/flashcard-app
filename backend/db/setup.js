@@ -1,14 +1,13 @@
 const { Pool } = require('pg');
 
-// Neon.tech (và mọi PostgreSQL provider) dùng DATABASE_URL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  // Neon yêu cầu SSL
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });
 
-// Helper: chạy query dễ dàng hơn
+// Lazy init: tạo bảng khi có request đầu tiên (hỗ trợ Vercel Serverless)
 let dbReady = false;
+
 const query = async (text, params) => {
   if (!dbReady) {
     await setupDatabase();
@@ -17,10 +16,8 @@ const query = async (text, params) => {
   return pool.query(text, params);
 };
 
-// Khởi tạo schema khi server start
 async function setupDatabase() {
   await pool.query(`
-    -- Users table
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       email TEXT UNIQUE NOT NULL,
@@ -31,7 +28,6 @@ async function setupDatabase() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
 
-    -- Decks table
     CREATE TABLE IF NOT EXISTS decks (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -42,7 +38,6 @@ async function setupDatabase() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
 
-    -- Cards table
     CREATE TABLE IF NOT EXISTS cards (
       id SERIAL PRIMARY KEY,
       deck_id INTEGER NOT NULL REFERENCES decks(id) ON DELETE CASCADE,
@@ -55,7 +50,6 @@ async function setupDatabase() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
 
-    -- User card progress (Spaced Repetition)
     CREATE TABLE IF NOT EXISTS user_card_progress (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -69,7 +63,6 @@ async function setupDatabase() {
       UNIQUE(user_id, card_id)
     );
 
-    -- Study sessions
     CREATE TABLE IF NOT EXISTS study_sessions (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id),

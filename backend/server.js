@@ -1,32 +1,25 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const { setupDatabase } = require('./db/setup');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Allowed origins: support multiple (local dev + production frontend)
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:4173',
-  'https://weben-three.vercel.app',
-  'https://weben-p94wsmczu-victory2k4s-projects.vercel.app',
-  process.env.FRONTEND_URL,
-];
-
+// CORS: cho phép tất cả *.vercel.app và localhost
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    // Allow all vercel.app preview/production URLs for this account
-    if (
-      allowedOrigins.filter(Boolean).includes(origin) ||
-      /\.vercel\.app$/.test(origin)
-    ) {
+    if (!origin || /\.vercel\.app$/.test(origin) || /^http:\/\/localhost/.test(origin)) {
+      return callback(null, true);
+    }
+    if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) {
       return callback(null, true);
     }
     callback(new Error(`CORS: origin ${origin} not allowed`));
   },
   credentials: true,
 }));
+
 app.use(express.json());
 
 // Routes
@@ -47,25 +40,19 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-const { setupDatabase } = require('./db/setup');
-
-// Startup: init DB schema first, then listen
+// Start server (bỏ qua khi chạy trên Vercel Serverless)
 async function start() {
   try {
     await setupDatabase();
-    if (process.env.VERCEL !== '1') {
-      app.listen(PORT, () => {
-        console.log(`🚀 Flashcard API running at http://localhost:${PORT}`);
-      });
+    if (!process.env.VERCEL) {
+      app.listen(PORT, () => console.log(`🚀 API chạy tại http://localhost:${PORT}`));
     }
   } catch (err) {
-    console.error('❌ Failed to start server:', err.message);
-    if (process.env.VERCEL !== '1') process.exit(1);
+    console.error('❌ Lỗi khởi động:', err.message);
+    if (!process.env.VERCEL) process.exit(1);
   }
 }
 
 start();
 
-// Export the Express API for Vercel
 module.exports = app;
-

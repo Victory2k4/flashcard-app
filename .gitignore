@@ -1,29 +1,33 @@
-# Dependencies
-node_modules/
-
-# Database files (SQLite)
-*.db
-*.db-shm
-*.db-wal
-
-# Environment variables
+# Môi trường
 .env
 .env.local
 .env.*.local
 
+# Dependencies
+node_modules/
+
 # Build output
-dist/
-build/
+frontend/dist/
+frontend/.next/
+
+# SQLite (đã migrate sang PostgreSQL)
+*.db
+*.db-shm
+*.db-wal
+
+# Công cụ deploy tạm (không cần đẩy lên repo)
+Git/
+MinGit.zip
+PortableGit.exe
+gh.zip
+gh_cli/
+gh_token.txt
+.ssh/
 
 # Logs
-logs/
 *.log
 npm-debug.log*
 
-# OS files
+# OS
 .DS_Store
 Thumbs.db
-
-# IDE
-.vscode/
-.idea/
