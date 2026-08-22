@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import useStore from '../store/useStore'
+import api from '../api/client'
 import Navbar from '../components/Navbar'
 import DeckCard from '../components/DeckCard'
 
@@ -21,13 +22,25 @@ export default function Dashboard() {
 
   const handleCreate = async e => {
     e.preventDefault()
-    if (!newDeck.title.trim()) return toast.error('Nhập tên bộ từ!')
+    if (!newDeck.isAi && !newDeck.title.trim()) return toast.error('Nhập tên bộ từ!')
+    if (newDeck.isAi && !newDeck.topic?.trim()) return toast.error('Nhập chủ đề!')
+    
+    setNewDeck(f => ({ ...f, loading: true }))
     try {
-      await createDeck(newDeck)
+      if (newDeck.isAi) {
+        const { data } = await api.post('/ai/generate-deck', { topic: newDeck.topic, count: 15 })
+        fetchDecks() // Refresh list since useStore createDeck is not used directly
+        toast.success(`Đã tạo bộ từ "${newDeck.topic}" bằng AI! 🎉`)
+      } else {
+        await createDeck({ title: newDeck.title, description: newDeck.description, color: newDeck.color })
+        toast.success('Tạo bộ từ thành công! 🎉')
+      }
       setShowForm(false)
-      setNewDeck({ title: '', description: '', color: '#6366f1' })
-      toast.success('Tạo bộ từ thành công! 🎉')
-    } catch { toast.error('Tạo thất bại, thử lại!') }
+      setNewDeck({ title: '', description: '', topic: '', isAi: false, color: '#6366f1', loading: false })
+    } catch (err) { 
+      toast.error(err.response?.data?.error || 'Tạo thất bại, thử lại!') 
+      setNewDeck(f => ({ ...f, loading: false }))
+    }
   }
 
   const handleDelete = async (id, e) => {
@@ -110,18 +123,50 @@ export default function Dashboard() {
                 className="card-glass p-6 w-full max-w-md"
                 onClick={e => e.stopPropagation()}
               >
-                <h3 className="text-lg font-semibold mb-5">Tạo bộ từ mới</h3>
+                <div className="flex justify-between items-center mb-5">
+                  <h3 className="text-lg font-semibold">Tạo bộ từ mới</h3>
+                  <button onClick={() => setShowForm(false)} className="text-white/50 hover:text-white">✕</button>
+                </div>
+                
+                {/* Tabs */}
+                <div className="flex gap-2 mb-4 p-1 bg-white/5 rounded-lg">
+                  <button 
+                    className={`flex-1 py-1.5 text-sm rounded-md transition-colors ${!newDeck.isAi ? 'bg-indigo-500 text-white shadow-sm' : 'text-white/50 hover:text-white'}`}
+                    onClick={() => setNewDeck(f => ({ ...f, isAi: false }))}
+                  >Thủ công</button>
+                  <button 
+                    className={`flex-1 py-1.5 text-sm rounded-md transition-colors flex items-center justify-center gap-1 ${newDeck.isAi ? 'bg-purple-500 text-white shadow-sm' : 'text-white/50 hover:text-white'}`}
+                    onClick={() => setNewDeck(f => ({ ...f, isAi: true }))}
+                  >✨ Bằng AI</button>
+                </div>
+
                 <form onSubmit={handleCreate} className="space-y-4">
-                  <div>
-                    <label className="block text-sm text-white/60 mb-1.5">Tên bộ từ *</label>
-                    <input className="input-field" placeholder="VD: TOEIC 600 từ" required
-                      value={newDeck.title} onChange={e => setNewDeck(f => ({ ...f, title: e.target.value }))} />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-white/60 mb-1.5">Mô tả</label>
-                    <input className="input-field" placeholder="VD: Từ vựng TOEIC Part 5, 6, 7"
-                      value={newDeck.description} onChange={e => setNewDeck(f => ({ ...f, description: e.target.value }))} />
-                  </div>
+                  {newDeck.isAi ? (
+                    <>
+                      <div>
+                        <label className="block text-sm text-white/60 mb-1.5">Chủ đề (AI sẽ tự tạo 15 từ) *</label>
+                        <input className="input-field" placeholder="VD: Động vật biển, Tiếng Anh du lịch..." required
+                          value={newDeck.topic} onChange={e => setNewDeck(f => ({ ...f, topic: e.target.value }))} />
+                      </div>
+                      <div className="text-xs text-purple-300/70 bg-purple-500/10 p-3 rounded-lg border border-purple-500/20">
+                        🤖 AI sẽ tự động phân tích chủ đề và tạo ra danh sách từ vựng kèm phiên âm, định nghĩa và câu ví dụ. Quá trình này mất khoảng 5-10 giây.
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="block text-sm text-white/60 mb-1.5">Tên bộ từ *</label>
+                        <input className="input-field" placeholder="VD: TOEIC 600 từ" required={!newDeck.isAi}
+                          value={newDeck.title} onChange={e => setNewDeck(f => ({ ...f, title: e.target.value }))} />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-white/60 mb-1.5">Mô tả</label>
+                        <input className="input-field" placeholder="VD: Từ vựng TOEIC Part 5, 6, 7"
+                          value={newDeck.description} onChange={e => setNewDeck(f => ({ ...f, description: e.target.value }))} />
+                      </div>
+                    </>
+                  )}
+                  
                   <div>
                     <label className="block text-sm text-white/60 mb-2">Màu sắc</label>
                     <div className="flex gap-2">
@@ -135,7 +180,9 @@ export default function Dashboard() {
                   </div>
                   <div className="flex gap-3 mt-2">
                     <button type="button" onClick={() => setShowForm(false)} className="btn-secondary flex-1">Hủy</button>
-                    <button type="submit" className="btn-primary flex-1">Tạo bộ từ</button>
+                    <button type="submit" disabled={newDeck.loading} className={`btn-primary flex-1 ${newDeck.loading ? 'opacity-70' : ''}`}>
+                      {newDeck.loading ? 'Đang tạo...' : (newDeck.isAi ? '✨ Tạo tự động' : 'Tạo bộ từ')}
+                    </button>
                   </div>
                 </form>
               </motion.div>

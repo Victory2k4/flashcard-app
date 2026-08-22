@@ -1,12 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import api from '../api/client';
+
 export default function AIChatMascot() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { id: 1, text: "Xin chào! Mình là Gấu Trúc AI 🐼. Mình có thể giúp gì cho bạn trong việc học tập hôm nay?", sender: 'ai' }
+    { id: 1, text: "Xin chào! Mình là Gấu Trúc AI 🐼. Hãy hỏi mình bất kỳ câu hỏi nào về từ vựng của bạn nhé!", sender: 'ai' }
   ]);
   const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -17,26 +20,38 @@ export default function AIChatMascot() {
     scrollToBottom();
   }, [messages, isOpen]);
 
-  const handleSend = (e) => {
+  const handleSend = async (e) => {
     e.preventDefault();
     if (!inputValue.trim()) return;
 
-    // Add user message
-    const newMsg = { id: Date.now(), text: inputValue, sender: 'user' };
+    const userText = inputValue;
+    const newMsg = { id: Date.now(), text: userText, sender: 'user' };
     setMessages(prev => [...prev, newMsg]);
     setInputValue('');
+    setIsLoading(true);
 
-    // Mock AI response (will be replaced by real API later)
-    setTimeout(() => {
+    try {
+      const { data } = await api.post('/ai/ask', { question: userText });
       setMessages(prev => [
         ...prev,
         { 
           id: Date.now() + 1, 
-          text: "Tính năng trả lời tự động bằng AI đang được phát triển. Sắp tới mình sẽ tự động truy vấn dữ liệu từ dự án để hỗ trợ bạn nhé! 🚀", 
+          text: data.answer, 
           sender: 'ai' 
         }
       ]);
-    }, 1000);
+    } catch (err) {
+      setMessages(prev => [
+        ...prev,
+        { 
+          id: Date.now() + 1, 
+          text: "Xin lỗi, hiện tại mình đang bị lỗi kết nối. Hãy thử lại sau nhé! 🐼", 
+          sender: 'ai' 
+        }
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
