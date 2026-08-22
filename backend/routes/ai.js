@@ -14,7 +14,7 @@ router.post('/generate-deck', authMiddleware, async (req, res) => {
   if (count > 30) return res.status(400).json({ error: 'Tối đa 30 thẻ mỗi lần' });
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
 
     const prompt = `
 You are a language learning assistant. Generate ${count} flashcard words for the topic "${topic}" in ${language}.
@@ -72,7 +72,7 @@ router.post('/suggest-card', authMiddleware, async (req, res) => {
   if (!term) return res.status(400).json({ error: 'Vui lòng nhập từ cần tra' });
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
     const prompt = `
 Give information for the ${language} word/phrase: "${term}"
 Return ONLY a valid JSON object (no markdown):
@@ -135,7 +135,7 @@ router.post('/ask', authMiddleware, async (req, res) => {
       .map(c => `- ${c.term} (${c.part_of_speech}): ${c.definition}. Ví dụ: ${c.example_sentence} [Bộ: ${c.deck_title}]`)
       .join('\n');
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
     const prompt = `
 Bạn là trợ lý học từ vựng thông minh. Người dùng đang học các từ sau:
 
