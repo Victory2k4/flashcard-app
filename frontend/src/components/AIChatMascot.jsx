@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-
 import api from '../api/client';
 
 export default function AIChatMascot() {
@@ -34,20 +33,12 @@ export default function AIChatMascot() {
       const { data } = await api.post('/ai/ask', { question: userText });
       setMessages(prev => [
         ...prev,
-        { 
-          id: Date.now() + 1, 
-          text: data.answer, 
-          sender: 'ai' 
-        }
+        { id: Date.now() + 1, text: data.answer, sender: 'ai' }
       ]);
     } catch (err) {
       setMessages(prev => [
         ...prev,
-        { 
-          id: Date.now() + 1, 
-          text: "Xin lỗi, hiện tại mình đang bị lỗi kết nối. Hãy thử lại sau nhé! 🐼", 
-          sender: 'ai' 
-        }
+        { id: Date.now() + 1, text: "Xin lỗi, hiện tại mình đang bị lỗi kết nối. Hãy thử lại sau nhé! 🐼", sender: 'ai' }
       ]);
     } finally {
       setIsLoading(false);
@@ -57,7 +48,6 @@ export default function AIChatMascot() {
   return (
     <div className="fixed bottom-6 right-6 z-50">
       <AnimatePresence>
-        {/* Chat Window */}
         {isOpen && (
           <motion.div
             initial={{ opacity: 0, y: 20, scale: 0.9 }}
@@ -69,8 +59,9 @@ export default function AIChatMascot() {
             {/* Header */}
             <div className="bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-slate-700 p-1 rounded-full overflow-hidden flex items-center justify-center">
-                  <img src="/panda-mascot.png" alt="Panda" className="w-full h-full object-cover rounded-full" />
+                {/* Avatar trong header - nền trắng, bo tròn nhẹ */}
+                <div className="w-10 h-10 bg-white rounded-xl overflow-hidden flex-shrink-0 shadow">
+                  <img src="/panda-mascot.png" alt="Panda" className="w-full h-full object-contain" />
                 </div>
                 <div>
                   <h3 className="text-white font-bold text-sm">Gấu Trúc Trợ Lý</h3>
@@ -80,32 +71,42 @@ export default function AIChatMascot() {
                   </p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setIsOpen(false)}
                 className="text-slate-400 hover:text-white transition-colors p-1"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
               </button>
             </div>
 
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-slate-900/50">
               {messages.map((msg) => (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  key={msg.id} 
+                  key={msg.id}
                   className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div className={`max-w-[80%] p-3 rounded-2xl text-sm shadow-sm ${
-                    msg.sender === 'user' 
-                      ? 'bg-blue-600 text-white rounded-br-sm' 
+                    msg.sender === 'user'
+                      ? 'bg-blue-600 text-white rounded-br-sm'
                       : 'bg-slate-700 text-slate-100 rounded-bl-sm border border-slate-600'
                   }`}>
                     {msg.text}
                   </div>
                 </motion.div>
               ))}
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-slate-700 text-slate-400 text-sm p-3 rounded-2xl rounded-bl-sm border border-slate-600">
+                    <span className="animate-pulse">Đang trả lời...</span>
+                  </div>
+                </div>
+              )}
               <div ref={messagesEndRef} />
             </div>
 
@@ -121,10 +122,13 @@ export default function AIChatMascot() {
                 />
                 <button
                   type="submit"
-                  disabled={!inputValue.trim()}
+                  disabled={!inputValue.trim() || isLoading}
                   className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-full w-10 h-10 flex items-center justify-center transition-colors shadow-md"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                  </svg>
                 </button>
               </form>
             </div>
@@ -133,30 +137,28 @@ export default function AIChatMascot() {
       </AnimatePresence>
 
       {/* Floating Mascot Button */}
-      <motion.div 
-        className="relative cursor-pointer group"
-        whileHover={{ scale: 1.05 }}
+      <motion.div
+        className="relative cursor-pointer"
+        whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
       >
-        {/* Tooltip Bubble */}
-        {!isOpen && (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1, duration: 0.5, repeat: Infinity, repeatType: "reverse" }}
-            className="absolute -top-12 right-0 whitespace-nowrap bg-blue-600 text-white text-xs font-medium px-3 py-2 rounded-xl rounded-br-sm shadow-lg pointer-events-none"
-          >
-            Cần giúp đỡ gì không? 👋
-          </motion.div>
-        )}
-        
-        {/* Mascot Avatar */}
-        <div className={`w-16 h-16 rounded-full shadow-2xl flex items-center justify-center text-4xl transition-all duration-300 border-2 overflow-hidden ${
-          isOpen ? 'bg-slate-700 border-slate-600' : 'bg-gradient-to-tr from-blue-500 to-purple-500 border-blue-400 p-0.5'
+        {/* Avatar nút - nền trắng, bo tròn nhẹ để ảnh hiển thị đẹp */}
+        <div className={`w-16 h-16 shadow-2xl transition-all duration-300 flex items-center justify-center overflow-hidden ${
+          isOpen
+            ? 'bg-slate-700 rounded-full border-2 border-slate-500'
+            : 'bg-white rounded-2xl border-2 border-blue-400/60'
         }`}>
-          {isOpen ? '✖️' : <img src="/panda-mascot.png" alt="Mascot" className="w-full h-full object-cover rounded-full bg-white" />}
+          {isOpen
+            ? <span className="text-2xl font-light text-white">✕</span>
+            : <img src="/panda-mascot.png" alt="Mascot" className="w-full h-full object-contain" />
+          }
         </div>
+
+        {/* Chấm xanh online */}
+        {!isOpen && (
+          <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-slate-900 animate-pulse" />
+        )}
       </motion.div>
     </div>
   );
